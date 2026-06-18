@@ -29,7 +29,7 @@ var (
 	redColor    = lipgloss.Color("#EF4444")
 
 	titleStyle = lipgloss.NewStyle().Foreground(purpleColor).Bold(true).Padding(0, 1)
-	cardStyle  = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(subtleColor).Padding(1, 2).MarginBottom(1)
+	cardStyle  = lipgloss.NewStyle().Padding(1, 2).MarginBottom(1)
 	errorStyle = lipgloss.NewStyle().Foreground(redColor).Bold(true)
 	helpStyle  = lipgloss.NewStyle().Foreground(subtleColor).Italic(true)
 	focusStyle = lipgloss.NewStyle().Foreground(pinkColor).Bold(true)
@@ -229,12 +229,11 @@ func (m dashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m dashboardModel) View() tea.View {
 	// 1. Header block
-	headerStr := titleStyle.Render("🐱 SIGCAT HUB")
 	statusStr := lipgloss.NewStyle().Foreground(redColor).Render("[🔴 STOPPED]")
 	if m.daemonRunning {
 		statusStr = lipgloss.NewStyle().Foreground(greenColor).Render("[🟢 RUNNING]")
 	}
-	headerBar := lipgloss.JoinHorizontal(lipgloss.Center, headerStr, " ", statusStr) + "\n\n"
+	headerBar := GenerateTexturedShadowTitle("SIGCAT HUB", "#AEB6FC", "#475569") + statusStr + "\n\n"
 
 	var bodyContent string
 

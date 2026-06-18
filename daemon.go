@@ -64,7 +64,14 @@ func runDaemon() {
 
 		// Self-termination safety logic if no automated tasks remain active
 		if activeCount == 0 {
-			log.Println("💤 No active profiles found running. Shutting down daemon context automatically.")
+			log.Println("💤 No active profiles found running. Giving workspace windows a second to map before exit...")
+
+			// FIX: Prevent the background context from crashing instantly.
+			// This gives your SpawnFloatingWindow a 2-second safety buffer to complete its
+			// window surface mapping before its parent process exits the execution thread.
+			time.Sleep(2 * time.Second)
+
+			log.Println("💤 Shutting down daemon context automatically.")
 			return // Exiting main loop shuts down the background daemon process safely!
 		}
 	}

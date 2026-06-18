@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"time"
 )
 
 func FindTerminal() string {
@@ -24,48 +23,59 @@ func SpawnFloatingWindow(terminalApp, executable, taskID string) error {
 	uiArg := "--ui=break"
 	idArg := fmt.Sprintf("--task-id=%s", taskID)
 
+	// 1. Synchronously inject rules before layout mapping
+	injectRuntimeHyprlandRules(uniqueTitle)
+
+	// 2. Launch the terminal with clear, un-nested identifiers
 	switch terminalApp {
-	case "kitty", "gnome-terminal":
-		cmd = exec.Command(terminalApp, "--title", uniqueTitle, "--", executable, uiArg, idArg)
-	case "alacritty", "foot":
-		cmd = exec.Command(terminalApp, "--title", uniqueTitle, "-e", executable, uiArg, idArg)
+	case "kitty":
+		cmd = exec.Command(terminalApp, "--class", uniqueTitle, "--title", uniqueTitle, "--", executable, uiArg, idArg)
+	case "alacritty":
+		cmd = exec.Command(terminalApp, "--class", uniqueTitle, "--title", uniqueTitle, "-e", executable, uiArg, idArg)
+	case "foot":
+		cmd = exec.Command(terminalApp, "--app-id", uniqueTitle, "--title", uniqueTitle, "-e", executable, uiArg, idArg)
 	default:
-		cmd = exec.Command(terminalApp, "--", executable, uiArg, idArg)
+		cmd = exec.Command(terminalApp, "--title", uniqueTitle, "--", executable, uiArg, idArg)
 	}
 
 	cmd.Env = os.Environ()
-	if err := cmd.Start(); err != nil {
-		return err
-	}
-
-	go applyHyprlandBatchRules(uniqueTitle)
-	return nil
+	return cmd.Start()
 }
 
-// applyHyprlandBatchRules batches all commands to prevent window mapping race conditions
-func applyHyprlandBatchRules(titleName string) {
-	// Give the terminal process 200ms to open its display canvas and bind the title
-	time.Sleep(200 * time.Millisecond)
+// injectRuntimeHyprlandRules registers memory-resident rules inside the active compositor session
+func injectRuntimeHyprlandRules(className string) {
+	// We map every variant variant Hyprland uses to track surfaces (class, initialClass, and title).
+	// This ensures that regardless of how fast your terminal updates its metadata, the
+	// compositor grabs the window the exact millisecond it maps onto your workspace.
+	rules := []string{
+		// 1. Explicit Class mappings
+		fmt.Sprintf("float, class:%s", className),
+		fmt.Sprintf("pin, class:%s", className),
+		fmt.Sprintf("center, class:%s", className),
+		fmt.Sprintf("stayfocused, class:%s", className),
+		fmt.Sprintf("dimaround, class:%s", className),
 
-	// In modern Hyprland, targeting by precise title format string looks like this:
-	target := fmt.Sprintf("title:^(%s)$", titleName)
+		// 2. Initial Class state mappings (Fixes race condition on terminal startup)
+		fmt.Sprintf("float, initialClass:%s", className),
+		fmt.Sprintf("pin, initialClass:%s", className),
+		fmt.Sprintf("center, initialClass:%s", className),
+		fmt.Sprintf("stayfocused, initialClass:%s", className),
+		fmt.Sprintf("dimaround, initialClass:%s", className),
 
-	// Construct an official single-tick batch transaction string.
-	// Commands are explicitly separated by semicolons within a single hyprctl payload.
-	batchPayload := fmt.Sprintf(
-		"dispatch togglefloating %s; "+
-			"dispatch resizewindowpixel exact 650 420,%s; "+
-			"dispatch centerwindow; "+
-			"dispatch pin %s",
-		target, target, target,
-	)
-
-	// Execute via the official utility with the --batch flag
-	cmd := exec.Command("hyprctl", "--batch", batchPayload)
-
-	if err := cmd.Run(); err != nil {
-		log.Printf("⚠️ Batch configuration failed: %v\n", err)
-	} else {
-		log.Println("🎨 Window layer successfully updated via hyprctl --batch.")
+		// 3. Fallback explicit Title mappings
+		fmt.Sprintf("float, title:%s", className),
+		fmt.Sprintf("pin, title:%s", className),
+		fmt.Sprintf("center, title:%s", className),
+		fmt.Sprintf("stayfocused, title:%s", className),
+		fmt.Sprintf("dimaround, title:%s", className),
 	}
+
+	for _, rule := range rules {
+		// Pass each keyword option cleanly over the IPC execution boundaries
+		cmd := exec.Command("hyprctl", "keyword", "windowrulev2", rule)
+		if err := cmd.Run(); err != nil {
+			log.Printf("⚠️ Failed to dynamically append rule [%s]: %v\n", rule, err)
+		}
+	}
+	log.Println("🎨 Centered Hyprland windowrulev2 overlay rules successfully injected via IPC.")
 }

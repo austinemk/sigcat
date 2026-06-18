@@ -70,7 +70,8 @@ func (m breakModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m breakModel) View() tea.View {
 	catStyled := lipgloss.NewStyle().Foreground(lipgloss.Color("#AEB6FC")).Render(catASCII)
-	bannerTitle := lipgloss.NewStyle().Foreground(lipgloss.Color("5")).Bold(true).Render(m.task.Title)
+	// Dynamically generates the block style + drop shadow matching the task's user-provided text!
+	bannerTitle := GenerateTexturedShadowTitle(TruncateString(m.task.Title, 7, false), "#AEB6FC", "#475569")
 
 	// Contextual tracking indicators
 	daemonStatus := lipgloss.NewStyle().Foreground(lipgloss.Color("#EF4444")).Render("● Daemon Offline")
@@ -79,7 +80,7 @@ func (m breakModel) View() tea.View {
 	}
 
 	var panel string
-	panel += lipgloss.NewStyle().Foreground(lipgloss.Color("#FFB8D1")).Bold(true).Render(m.task.Message) + "\n\n"
+	panel += lipgloss.NewStyle().Foreground(lipgloss.Color("#FFB8D1")).Width(40).Italic(true).Bold(true).Render(m.task.Message) + "\n\n"
 	panel += fmt.Sprintf("⚙️ Context: %s\n", daemonStatus)
 
 	if m.task.AutoRepeat {
@@ -89,11 +90,11 @@ func (m breakModel) View() tea.View {
 	}
 
 	// Informative helper keys menu change
-	actionText := "[s] Dismiss Window  •  [r] Stop Repeat Loop"
+	/*actionText := "[s] Dismiss Window  •  [r] Stop Repeat Loop"
 	if !m.task.AutoRepeat {
 		actionText = "[s] Dismiss Window  •  [r] Repeat Task Tracker"
 	}
-	panel += lipgloss.NewStyle().Foreground(lipgloss.Color("#64748B")).Render(actionText)
+	panel += lipgloss.NewStyle().Foreground(lipgloss.Color("#64748B")).Render(actionText)*/
 
 	uiLayout := lipgloss.JoinHorizontal(lipgloss.Bottom, panel, catStyled)
 	combinedView := lipgloss.NewStyle().Padding(2, 4).Render(lipgloss.JoinVertical(lipgloss.Center, bannerTitle, uiLayout))
