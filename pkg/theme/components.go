@@ -1,4 +1,4 @@
-package main
+package theme
 
 import (
 	_ "embed" // Required for go:embed directive compiler hooks

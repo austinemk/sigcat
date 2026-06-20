@@ -1,4 +1,4 @@
-package main
+package helpers
 
 import (
 	"crypto/rand"
@@ -9,6 +9,10 @@ import (
 	"time"
 )
 
+// ==========================================
+// Core Domain Structural Types
+// ==========================================
+
 type BreakTask struct {
 	ID          string    `json:"id"`
 	Title       string    `json:"title"`
@@ -17,6 +21,11 @@ type BreakTask struct {
 	AutoRepeat  bool      `json:"auto_repeat"`
 	IsActive    bool      `json:"is_active"`
 	NextRun     time.Time `json:"next_run"`
+}
+
+// FilterValue satisfies the charm.land/bubbles/list.Item interface
+func (t BreakTask) FilterValue() string {
+	return t.Title + " " + t.ID
 }
 
 // GenerateShortID creates a 4-character unique random hex string (e.g., "a2f9")
@@ -29,7 +38,7 @@ func GenerateShortID() string {
 	return hex.EncodeToString(bytes)
 }
 
-func getConfigPath() string {
+func getTasksFilePath() string {
 	home, _ := os.UserHomeDir()
 	dir := filepath.Join(home, ".config", "sigcat")
 	_ = os.MkdirAll(dir, 0o755)
@@ -37,7 +46,7 @@ func getConfigPath() string {
 }
 
 func LoadTasks() ([]BreakTask, error) {
-	path := getConfigPath()
+	path := getTasksFilePath()
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return []BreakTask{}, nil
 	}
@@ -51,7 +60,7 @@ func LoadTasks() ([]BreakTask, error) {
 }
 
 func SaveTasks(tasks []BreakTask) error {
-	path := getConfigPath()
+	path := getTasksFilePath()
 	data, err := json.MarshalIndent(tasks, "", "  ")
 	if err != nil {
 		return err

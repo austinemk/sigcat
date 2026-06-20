@@ -1,4 +1,4 @@
-package main
+package helpers
 
 import (
 	"log"
@@ -16,7 +16,7 @@ func tickCmd() tea.Cmd {
 	})
 }
 
-func runDaemon() {
+func RunDaemon() {
 	log.Println("🐱 sigcat background runtime scheduler listening...")
 
 	ticker := time.NewTicker(5 * time.Second)
@@ -66,9 +66,6 @@ func runDaemon() {
 		if activeCount == 0 {
 			log.Println("💤 No active profiles found running. Giving workspace windows a second to map before exit...")
 
-			// FIX: Prevent the background context from crashing instantly.
-			// This gives your SpawnFloatingWindow a 2-second safety buffer to complete its
-			// window surface mapping before its parent process exits the execution thread.
 			time.Sleep(2 * time.Second)
 
 			log.Println("💤 Shutting down daemon context automatically.")
