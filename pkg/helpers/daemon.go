@@ -35,25 +35,26 @@ func RunDaemon() {
 		now := time.Now()
 		activeCount := 0
 
+		// In daemon.go (inside RunDaemon's loop)
+
 		for i, task := range tasks {
 			if !task.IsActive {
 				continue
 			}
 
-			activeCount++ // Found an active profile
+			activeCount++
 
 			if now.After(task.NextRun) {
 				log.Printf("⏰ Target hit for profile [%s]: %s\n", task.ID, task.Title)
 
-				// Spawn explicit workspace overlay window
+				// 1. Spawn the floating window
 				_ = SpawnFloatingWindow(terminalApp, executable, task.ID)
 
-				if task.AutoRepeat {
-					tasks[i].NextRun = now.Add(time.Duration(task.DurationMin) * time.Minute)
-				} else {
-					tasks[i].IsActive = false
-					activeCount-- // It just turned inactive
-				}
+				// 2. Turn off IsActive temporarily so the daemon stops tracking it
+				// until the user interacts with the popup window and closes it.
+				tasks[i].IsActive = false
+				activeCount--
+
 				changed = true
 			}
 		}

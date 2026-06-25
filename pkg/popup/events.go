@@ -10,6 +10,11 @@ import (
 func (m PopupModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
+	case tea.WindowSizeMsg: // 👈 Catch the window size event
+		m.TerminalWidth = msg.Width
+		m.TerminalHeight = msg.Height
+		return m, nil
+
 	// Handle the simple text frame step
 	case FrameMsg:
 		if len(m.frames) == 0 {
@@ -22,23 +27,38 @@ func (m PopupModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Tick(125*time.Millisecond, func(t time.Time) tea.Msg {
 			return FrameMsg{}
 		})
+		// In events.go (inside the tea.KeyPressMsg switch statement)
 
 	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "s", "q", "escape":
-			return m, tea.Quit
-
-		case "r":
+			// Handle normal quit behavior for AutoRepeat tasks here!
 			tasks, err := helpers.LoadTasks()
 			if err == nil {
 				for i, t := range tasks {
 					if t.ID == m.Task.ID {
 						if t.AutoRepeat {
-							tasks[i].AutoRepeat = false
-						} else {
-							tasks[i].IsActive = true
+							// Reschedule the next run from the MOMENT they close the current one
 							tasks[i].NextRun = time.Now().Add(time.Duration(t.DurationMin) * time.Minute)
+							tasks[i].IsActive = true
+						} else {
+							tasks[i].IsActive = false
 						}
+						break
+					}
+				}
+				_ = helpers.SaveTasks(tasks)
+			}
+			return m, tea.Quit
+
+		case "r":
+			// Your existing 'r' key logic for manual repetition overrides...
+			tasks, err := helpers.LoadTasks()
+			if err == nil {
+				for i, t := range tasks {
+					if t.ID == m.Task.ID {
+						tasks[i].IsActive = true
+						tasks[i].NextRun = time.Now().Add(time.Duration(t.DurationMin) * time.Minute)
 						break
 					}
 				}

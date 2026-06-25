@@ -17,10 +17,12 @@ var assetFiles embed.FS
 type FrameMsg struct{}
 
 type PopupModel struct {
-	Task          helpers.BreakTask
-	DaemonRunning bool
-	frames        []string
-	currentFrame  int
+	Task           helpers.BreakTask
+	DaemonRunning  bool
+	frames         []string
+	currentFrame   int
+	TerminalWidth  int
+	TerminalHeight int
 }
 
 func InitialPopupModel(id string) PopupModel {

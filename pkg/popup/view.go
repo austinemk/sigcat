@@ -8,17 +8,18 @@ import (
 	"charm.land/lipgloss/v2"
 )
 
+// In view.go, update your View() method:
+
 func (m PopupModel) View() tea.View {
-	// Safely retrieve the active Braille string frame
+	// 1. Safely retrieve the active Braille string frame
 	activeArt := ""
 	if len(m.frames) > 0 {
 		activeArt = m.frames[m.currentFrame]
 	}
 
-	// Give the Braille art a clean, muted look like the screenshot (e.g., subtle blue/gray)
-	artStyled := lipgloss.NewStyle().Foreground(lipgloss.Color("4")).Render(activeArt)
-
-	bannerTitle := theme.GenerateTexturedShadowTitle(theme.TruncateString(m.Task.Title, 7, false), "#AEB6FC")
+	// 2. Render your layout elements (same as you had before)
+	artStyled := lipgloss.NewStyle().Foreground(lipgloss.Color("4")).Bold(true).Render(activeArt)
+	bannerTitle := theme.GenerateTexturedShadowTitle(theme.TruncateString(m.Task.Title, 10, false), "#AEB6FC")
 
 	var panel string
 	panel += theme.AccentStyle.Width(30).Render(m.Task.Message) + "\n\n"
@@ -32,13 +33,27 @@ func (m PopupModel) View() tea.View {
 		panel += theme.MutedStyle.Render("[r] repeat [s/q] quit")
 	}
 
-	// Side-by-side alignment: info text panel on the left, Braille art on the right
-	uiLayout := lipgloss.JoinHorizontal(lipgloss.Center, panel, artStyled)
+	// 3. Join layout elements together
+	uiLayout := lipgloss.JoinHorizontal(lipgloss.Bottom, panel, artStyled)
+	combinedView := lipgloss.JoinVertical(lipgloss.Center, bannerTitle, uiLayout)
 
-	combinedView := lipgloss.NewStyle().Padding(2, 4).
-		Render(lipgloss.JoinVertical(lipgloss.Center, bannerTitle, uiLayout))
+	// 4. DYNAMICALLY CENTER THE CONTENT
+	// If we haven't received the dimensions yet, fallback to a clean string
+	var finalRender string
+	if m.TerminalWidth > 0 && m.TerminalHeight > 0 {
+		finalRender = lipgloss.Place(
+			m.TerminalWidth,
+			m.TerminalHeight,
+			lipgloss.Center,
+			lipgloss.Center,
+			combinedView,
+		)
+	} else {
+		// Fallback padding just in case the initial size event is slightly delayed
+		finalRender = lipgloss.NewStyle().Padding(2, 4).Render(combinedView)
+	}
 
-	v := tea.NewView(combinedView)
+	v := tea.NewView(finalRender)
 	v.AltScreen = true
 	return v
 }

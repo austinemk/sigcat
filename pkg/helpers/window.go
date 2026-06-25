@@ -13,6 +13,10 @@ func SpawnFloatingWindow(terminalApp, executable, taskID string) error {
 	uiArg := "--ui=break"
 	idArg := fmt.Sprintf("--task-id=%s", taskID)
 
+	// 0. PREVENT CLUTTER: Force-kill any existing popup window matching our unique title
+	// We use pkill -f to find the exact terminal layout title signature.
+	_ = exec.Command("pkill", "-f", uniqueTitle).Run()
+
 	// 1. Synchronously inject rules before layout mapping
 	injectRuntimeHyprlandRules(uniqueTitle)
 
